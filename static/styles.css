@@ -21,3 +21,10 @@ nav .navbar-brand .green
 {
     color: #2e944b;
 }
+
+.pan_pan
+{
+    display: inline-block;
+    width: 100px;
+    height: 100px;
+}

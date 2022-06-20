@@ -25,8 +25,11 @@ app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
-# Configure CS50 Library to use SQLite database
-db = SQL("sqlite:///finance.db")
+# Configure Heroku to use Postgres database
+uri = os.getenv("postgres://uruoovptuxszzx:82f0d2be5bd3bca017c05c245eb066770ca7429c41e4f67ce9b067ec96ed9067@ec2-3-224-8-189.compute-1.amazonaws.com:5432/d6hcbnt3f0vmln")
+if uri.startswith("postgres://"):
+    uri = uri.replace("postgres://", "postgresql://")
+db = SQL(uri)
 
 # Make sure API key is set
 if not os.environ.get("API_KEY"):

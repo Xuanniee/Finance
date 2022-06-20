@@ -26,7 +26,7 @@ app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 # Configure Heroku to use Postgres database
-uri = os.getenv("postgres://uruoovptuxszzx:82f0d2be5bd3bca017c05c245eb066770ca7429c41e4f67ce9b067ec96ed9067@ec2-3-224-8-189.compute-1.amazonaws.com:5432/d6hcbnt3f0vmln")
+uri = os.getenv("DATABASE_URL")
 if uri.startswith("postgres://"):
     uri = uri.replace("postgres://", "postgresql://")
 db = SQL(uri)

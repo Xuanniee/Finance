@@ -1,4 +1,6 @@
+from crypt import methods
 import os
+import sys
 
 from cs50 import SQL
 from flask import Flask, flash, redirect, render_template, request, session
@@ -26,10 +28,12 @@ app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 # Configure Heroku to use Postgres database
-uri = os.getenv("DATABASE_URL")
-if uri.startswith("postgres://"):
-    uri = uri.replace("postgres://", "postgresql://")
-db = SQL(uri)
+# uri = os.getenv("DATABASE_URL")
+# if uri.startswith("postgres://"):
+#     uri = uri.replace("postgres://", "postgresql://")
+# db = SQL(uri)
+
+db = SQL("sqlite:///finance.db")
 
 # Make sure API key is set
 if not os.environ.get("API_KEY"):
@@ -363,3 +367,35 @@ def add_cash():
     # GET Request to reach form to add cash
     else:
         return render_template("add.html")
+
+@app.route("/account", methods=["GET","POST"])
+@login_required
+def pass_change():
+    # POST Request
+    if request.method == "POST":
+        # Take User Input
+        old_pass_user = request.form.get("old_password")
+        new_pass = request.form.get("new_password")
+        confirmation = request.form.get("new_confirmation")
+        sess_id = session["user_id"]
+
+        # Form Validation
+        if old_pass_user == None:
+            return apology("Please submit all the Password Fields or we cannot change the Password for you!!", 403)
+        # Wrong Old Password
+        # Select returns a List of Dicts
+        hash_pass_dict = db.execute("SELECT hash FROM users WHERE id = ?", sess_id)
+
+        if not check_password_hash(hash_pass_dict[0]["hash"], old_pass_user):
+            return apology("You have provided the wrong current password!!", 403)
+        # Passwords do not match
+        if new_pass != confirmation:
+            return apology("Please ensure your passwords matches!!", 403)
+        
+        # Changing of Password
+        db.execute("UPDATE users SET hash = ? WHERE id = ?", generate_password_hash(new_pass), sess_id)
+        return redirect("/")
+
+    # GET Request
+    else:
+        return render_template("account.html")

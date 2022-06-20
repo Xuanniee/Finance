@@ -1,0 +1,34 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Account Settings
+{% endblock %}
+
+
+{% block main %}
+    <!-- Form to change Password -->
+    <form action="/account" method="post">
+
+        <div class="mb-3">
+            <span>Change your password here!!</span>
+        </div>
+
+        <div class="mb-3">
+            <input autofocus autocomplete="off" class="form-control mx-auto w-auto" placeholder="Old Password" name="old_password" id="old_password" type="password">
+        </div>
+
+        
+        <div class="mb-3">
+            <input autofocus autocomplete="off" class="form-control mx-auto w-auto" placeholder="New Password" name="new_password" id="new_password" type="password">
+        </div>
+
+        
+        <div class="mb-3">
+            <input autofocus autocomplete="off" class="form-control mx-auto w-auto" placeholder="New Password (again)" name="new_confirmation" id="new_confirmation" type="password">
+        </div>
+
+        <!-- Button to Submit Changes -->
+        <button class="btn btn-danger" type="submit">Submit</button>
+
+    </form>
+{% endblock %}

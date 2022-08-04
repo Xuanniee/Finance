@@ -25,10 +25,13 @@
         <nav class="bg-light border navbar navbar-expand-md navbar-light">
             <div class="container-fluid">
                 <img class="pan_pan" src="static/panpan-icon.png" alt="Pan Pan Logo">
+
                 <a class="navbar-brand" href="/"><span class="blue">Pan Pan's</span> <span class="black">Finance</span></a>
+
                 <button aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler" data-bs-target="#navbar" data-bs-toggle="collapse" type="button">
                     <span class="navbar-toggler-icon"></span>
                 </button>
+                
                 <div class="collapse navbar-collapse" id="navbar">
                     {% if session["user_id"] %}
                         <ul class="navbar-nav me-auto mt-2">

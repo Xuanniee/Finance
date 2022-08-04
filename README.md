@@ -45,15 +45,25 @@ Upon clicking the Quote Button, Users will be redirected to a view containing a 
 To illustrate, a User inputting AAPL will return the current market value of Apple's Shares as shown above.
 
 ### 4. Buying Stocks
+![Picture of Buy Form](./Images/Buy%20Form.png?raw=true "Buy Form")
+To buy shares, Users will have to input the Stock Symbol and the Quantity of Shares they would like to buy. If any of the fields are empty, invalid, or if the User cannot afford the shares, an error message will be rendered to Users like before. 
 
+They will then be redirected to the index page to see all the shares they have purchased.
 
 ### 5. Selling Stocks
+![Picture of Sell Form](./Images/Sell%20Form.png?raw=true "Sell Form")
+Similar to the Buy Form, Users will have to indicate the Symbol and Quantity to sell their shares. However, the Symbol will be in a dropdown list as Users should not be able to sell stocks that they do not yet possess. Once the shares are sold, they will be redirected to the Index Page as well.
 
-
-### 6. Transaction History 
+### 6. Transaction History
+![Picture of Transactions](./Images/History.png?raw=true "Transactions")
+Upon clicking History, Users will be redirected to a view that presents all of the transactions made by the User in reverse chronological order as shown above. The sign of the quantity will indicate if the transaction was a Buy or Sell.
 
 ### 7. Additional QOL Features
+![Picture of Add Cash](./Images/Add%20Cash.png?raw=true "Add Cash")
+Users are also able to top up more cash into their account if their funds are running low.
 
+![Picture of Change Password](./Images/Change%20Password.png?raw=true "Change Password")
+Users can also change their password if they like.
 
 ## Learning Outcomes
 

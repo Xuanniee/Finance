@@ -1,6 +1,7 @@
 from crypt import methods
 import os
 import sys
+import redis
 
 from cs50 import SQL
 from flask import Flask, flash, redirect, render_template, request, session
@@ -22,9 +23,15 @@ app.jinja_env.filters["usd"] = usd
 # Allows me to use Zip with Jinja, thus iterating over 2 Lists
 app.jinja_env.filters['zip'] = zip
 
-# Configure session to use filesystem (instead of signed cookies)
+# # Configure session to use filesystem (instead of signed cookies)
+# app.config["SESSION_PERMANENT"] = False
+# app.config["SESSION_TYPE"] = "filesystem"
+# Configure session to use Redis
+app.config["SESSION_TYPE"] = "redis"
 app.config["SESSION_PERMANENT"] = False
-app.config["SESSION_TYPE"] = "filesystem"
+app.config["SESSION_KEY_PREFIX"] = "myapp:"  # Optional: Prefix for Redis keys
+app.config["SESSION_REDIS"] = redis.StrictRedis(host='localhost', port=6379, db=0)
+
 Session(app)
 
 # Configure Heroku to use Postgres database

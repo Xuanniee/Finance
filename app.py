@@ -34,6 +34,13 @@ app.config["SESSION_REDIS"] = redis.StrictRedis(host='localhost', port=6379, db=
 
 Session(app)
 
+# Initialize Redis client
+redis_client = redis.StrictRedis(
+    host=os.getenv('REDIS_HOST', 'localhost'),
+    port=int(os.getenv('REDIS_PORT', 6379)),
+    db=0
+)
+
 # Configure Heroku to use Postgres database
 # uri = os.getenv("DATABASE_URL")
 # if uri.startswith("postgres://"):

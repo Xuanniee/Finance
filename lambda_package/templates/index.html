@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Index
+{% endblock %}
+
+{% block main %}
+    <!-- TODO Add an Alert to show that I bought the Stocks -->
+    <!-- Show Stocks Portfolio in a Table Container py-5 to make table smaller in center -->
+    <div class="container py-5 text-center table-responsive">
+        <table class="table table-striped">
+            <!-- Table Headers -->
+            <thead class="thead-dark">
+                <tr>
+                    <!-- text-start/end to shift the numbers or words to end or start of box -->
+                    <th class="text-start">Symbol</th>
+                    <th class="text-start">Name</th>
+                    <th class="text-start">Shares</th>
+                    <th class="text-end">Price</th>
+                    <th class="text-end">Total</th>
+                </tr>
+            </thead>
+
+            <!-- Table Data -->
+            <tbody>
+                <!-- Zip Function to Iterate over 2 Lists of Dictionaries -->
+                {% for stock, calculation in stocks_portfolio|zip(individual_stock_total) %}
+                    <tr>
+                        <td class="text-start">{{ stock.symbol }}</td>
+                        <td class="text-start">{{ stock.stock_name }}</td>
+                        <td class="text-start">{{ stock.shares_qty }}</td>
+                        <td class="text-end">{{ calculation.price | usd }}</td>
+                        <td class="text-end">{{ calculation.total | usd }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+            <!-- Shift the Footers Cash and Total to the Right -->
+            <tfoot>
+                <tr>
+                    <!-- colspan represents the number of columns the column will take -->
+                    <td class="border-0 fw-bold text-end" colspan="4">Cash</td>
+                    <!-- Formatted as USD using the usd function -->
+                    <td class="border-0 text-end">{{ user_cash | usd }}</td>
+                </tr>
+
+                <tr>
+                    <td class="border-0 fw-bold text-end" colspan="4">Total</td>
+                    <td class="border-0 text-end">{{ total_assets | usd }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+{% endblock %}

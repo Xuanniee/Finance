@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+
+{% block title %}
+History
+{% endblock %}
+
+{% block main %}
+    <div class="container text-center table-responsive">
+        <table class="table table-striped">
+            <thead class="thead-dark">
+                <tr>
+                    <th class="text-start">Symbol</th>
+                    <th class="text-start">Shares</th>
+                    <th class="text-end">Price</th>
+                    <th class="text-end">Transacted</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <!-- Reverse Filter [Built-In] for For Loop so most recent transactions appear on top -->
+                {% for stock in stocks_portfolio|reverse %}
+                    <tr>
+                        <td class="text-start">{{ stock.symbol }}</td>
+                        <td class="text-start">{{ stock.shares_qty }}</td>
+                        <td class="text-end">{{ stock.purchased_price | usd }}</td>
+                        <td class="text-end">{{ stock.datetime }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

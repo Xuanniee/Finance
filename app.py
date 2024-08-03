@@ -1,11 +1,11 @@
 from crypt import methods
 import os
 import sys
-import redis
 
 from cs50 import SQL
 from flask import Flask, flash, redirect, render_template, request, session
 from flask_session import Session
+from flask_sqlalchemy import SQLAlchemy
 from tempfile import mkdtemp
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime
@@ -24,22 +24,14 @@ app.jinja_env.filters["usd"] = usd
 app.jinja_env.filters['zip'] = zip
 
 # # Configure session to use filesystem (instead of signed cookies)
-# app.config["SESSION_PERMANENT"] = False
-# app.config["SESSION_TYPE"] = "filesystem"
-# Configure session to use Redis
-app.config["SESSION_TYPE"] = "redis"
-app.config["SESSION_PERMANENT"] = False
-app.config["SESSION_KEY_PREFIX"] = "myapp:"  # Optional: Prefix for Redis keys
-app.config["SESSION_REDIS"] = redis.StrictRedis(host='localhost', port=6379, db=0)
+# Configuration for SQLite
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///finance.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize the database
+db = SQLAlchemy(app)
 
 Session(app)
-
-# Initialize Redis client
-redis_client = redis.StrictRedis(
-    host=os.getenv('REDIS_HOST', 'localhost'),
-    port=int(os.getenv('REDIS_PORT', 6379)),
-    db=0
-)
 
 # Configure Heroku to use Postgres database
 # uri = os.getenv("DATABASE_URL")
@@ -47,7 +39,7 @@ redis_client = redis.StrictRedis(
 #     uri = uri.replace("postgres://", "postgresql://")
 # db = SQL(uri)
 
-db = SQL("sqlite:///finance.db")
+# db = SQL("sqlite:///finance.db")
 
 # Make sure API key is set
 if not os.environ.get("API_KEY"):

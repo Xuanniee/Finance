@@ -214,7 +214,7 @@ def login():
         rows = conn.execute("SELECT * FROM users WHERE username = ?", (request.form.get("username"), )).fetchall()
 
         # Ensure username exists and password is correct
-        if len(rows) != 1 or not check_password_hash(rows[0]["hash"], (request.form.get("password"), )):
+        if len(rows) != 1 or not check_password_hash(rows[0]["hash"], request.form.get("password")):
             return apology("invalid username and/or password", 403)
 
         # Remember which user has logged in
@@ -441,7 +441,7 @@ def pass_change():
             return apology("Please ensure your passwords matches!!", 403)
         
         # Changing of Password
-        conn.execute("UPDATE users SET hash = ? WHERE id = ?", generate_password_hash(new_pass), (sess_id, ))
+        conn.execute("UPDATE users SET hash = ? WHERE id = ?", (generate_password_hash(new_pass), sess_id))
 
         conn.commit()
         conn.close()

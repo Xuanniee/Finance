@@ -1,5 +1,6 @@
 cs50
 Flask
+pytz
 Flask-Session
 gunicorn
 psycopg2-binary

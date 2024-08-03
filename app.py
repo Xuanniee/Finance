@@ -69,10 +69,10 @@ def index():
     """Show portfolio of stocks"""
     # Use SQLite3 to attain different Lists of Dictionaries to pass into Render Template
     sess_id = (session["user_id"])
-    stocks_portfolio = conn.execute("SELECT * FROM stocks WHERE user_id = ?", sess_id).fetchall()
+    stocks_portfolio = conn.execute("SELECT * FROM stocks WHERE user_id = ?", (sess_id, )).fetchall()
 
     # Get User Cash
-    user_cash_listdict = conn.execute("SELECT cash FROM users WHERE id = ?", sess_id).fetchall()
+    user_cash_listdict = conn.execute("SELECT cash FROM users WHERE id = ?", (sess_id, )).fetchall()
     user_cash = user_cash_listdict[0]["cash"]
 
     # Calculate Individual Stock Total
@@ -131,7 +131,7 @@ def buy():
 
         # Determine Current User's Cash using their Session ID as it returns us a List of Dicts
         sess_id = (session["user_id"])
-        cash_dict = conn.execute("SELECT cash FROM users WHERE id = ?", sess_id).fetchall()
+        cash_dict = conn.execute("SELECT cash FROM users WHERE id = ?", (sess_id, )).fetchall()
         # Same reason as sess_id
         # Cleaning Cash to be used
         user_cash = cash_dict[0]["cash"]
@@ -142,32 +142,32 @@ def buy():
             return apology("You are unable to complete this transaction due to insufficient funds!!")
 
         # Check if the User has bought this particular stock before (SELECT returns a List)
-        first_time_buyer = len(conn.execute("SELECT stock_name FROM stocks WHERE user_id = ? AND symbol = ?", sess_id, stock_symbol)).fetchone()
+        first_time_buyer = len(conn.execute("SELECT stock_name FROM stocks WHERE user_id = ? AND symbol = ?", (sess_id, stock_symbol, ))).fetchone()
 
         # Empty List as New Stock
         if (first_time_buyer == 0):
             # Record the Transaction
             conn.execute("INSERT INTO transactions (user_id, symbol, stock_name, purchased_price, shares_qty, datetime) VALUES (?, ?, ?, ?, ?, ?)",
-            sess_id, stock_symbol, share_name, stock_currentprice, stock_shares, datetime.now())
+            (sess_id, stock_symbol, share_name, stock_currentprice, stock_shares, datetime.now(), ))
             # Record the Account
             conn.execute("INSERT INTO stocks (user_id, symbol, stock_name, current_price, shares_qty) VALUES (?, ?, ?, ?, ?)",
-            sess_id, stock_symbol, share_name, stock_currentprice, stock_shares)
+            (sess_id, stock_symbol, share_name, stock_currentprice, stock_shares, ))
 
         # Existing Stock
         else:
             # Record the Transaction
             conn.execute("INSERT INTO transactions (user_id, symbol, stock_name, purchased_price, shares_qty, datetime) VALUES (?, ?, ?, ?, ?, ?)",
-                       sess_id, stock_symbol, share_name, stock_currentprice, stock_shares, datetime.now())
+                       (sess_id, stock_symbol, share_name, stock_currentprice, stock_shares, datetime.now(), ))
             # Update the Account
-            old_qty_dict = conn.execute("SELECT shares_qty FROM stocks WHERE user_id = ?", sess_id).fetchall()
+            old_qty_dict = conn.execute("SELECT shares_qty FROM stocks WHERE user_id = ?", (sess_id, )).fetchall()
             old_qty = old_qty_dict[0]["shares_qty"]
             new_qty = old_qty + stock_shares
             conn.execute("UPDATE stocks SET current_price = ?, shares_qty = ? WHERE user_id = ? AND symbol = ?",
-                       stock_currentprice, new_qty, sess_id, stock_symbol)
+                       (stock_currentprice, new_qty, sess_id, stock_symbol, ))
 
         # Update User's Cash
         user_cash = user_cash - transaction_cost
-        conn.execute("UPDATE users SET cash = ? WHERE id = ?", user_cash, sess_id)
+        conn.execute("UPDATE users SET cash = ? WHERE id = ?", (user_cash, sess_id, ))
         conn.commit()
         conn.close()
         return redirect("/")
@@ -185,7 +185,7 @@ def history():
     # GET Request
     if (request.method == "GET"):
         sess_id = session["user_id"]
-        stocks_portfolio = conn.execute("SELECT * FROM transactions WHERE user_id = ?", sess_id).fetchall()
+        stocks_portfolio = conn.execute("SELECT * FROM transactions WHERE user_id = ?", (sess_id, )).fetchall()
         return render_template("history.html", stocks_portfolio=stocks_portfolio)
 
 
@@ -208,10 +208,10 @@ def login():
             return apology("must provide password", 403)
 
         # Query database for username
-        rows = conn.execute("SELECT * FROM users WHERE username = ?", request.form.get("username")).fetchall()
+        rows = conn.execute("SELECT * FROM users WHERE username = ?", (request.form.get("username"), )).fetchall()
 
         # Ensure username exists and password is correct
-        if len(rows) != 1 or not check_password_hash(rows[0]["hash"], request.form.get("password")):
+        if len(rows) != 1 or not check_password_hash(rows[0]["hash"], (request.form.get("password"), )):
             return apology("invalid username and/or password", 403)
 
         # Remember which user has logged in
@@ -282,16 +282,16 @@ def register():
         elif (new_password != confirmation):
             return apology("Please check that you have entered your password correctly!!")
         # Check if Username has been taken
-        elif (conn.execute("SELECT * FROM users WHERE username = ?", new_username).fetchall()):
+        elif (conn.execute("SELECT * FROM users WHERE username = ?", (new_username, )).fetchall()):
             conn.close()
             return apology("Username is in use. Please pick another!!", 400)
 
         # If no errors, add the User into our Database
         hashed_pw = generate_password_hash(new_password)
-        conn.execute("INSERT INTO users (username, hash) VALUES(?,?)", new_username, hashed_pw)
+        conn.execute("INSERT INTO users (username, hash) VALUES(?,?)", (new_username, hashed_pw, ))
 
         # Log User in
-        session["user_id"] = (conn.execute("SELECT id FROM users WHERE username = ?", new_username).fetchall())[0]['id']
+        session["user_id"] = (conn.execute("SELECT id FROM users WHERE username = ?", (new_username, )).fetchall())[0]['id']
         
         # Commit all the insert and update queries and close connection
         conn.commit()
@@ -317,7 +317,7 @@ def sell():
 
         # Input Validation
         sess_id = session["user_id"]
-        shares_owned_dict = conn.execute("SELECT shares_qty FROM stocks WHERE user_id = ?", sess_id).fetchall()
+        shares_owned_dict = conn.execute("SELECT shares_qty FROM stocks WHERE user_id = ?", (sess_id, )).fetchall()
         shares_owned = shares_owned_dict[0]["shares_qty"]
         if (shares_sell_qty <= 0):
             # Non-Positive Number of Shares to be sold
@@ -337,30 +337,30 @@ def sell():
         current_price = stock_quote["price"]
         stock_name = stock_quote["name"]
         # Cash is in USD format, a string. Thus it needs to be stripped and replaced to be cast as a float
-        current_cash = (conn.execute("SELECT cash FROM users WHERE id = ?", sess_id).fetchall()[0]["cash"])
+        current_cash = (conn.execute("SELECT cash FROM users WHERE id = ?", (sess_id, )).fetchall()[0]["cash"])
 
         if (shares_sell_qty == shares_owned):
             # Record Transaction for Sale
             sold_shares = -(shares_sell_qty)
             conn.execute("INSERT INTO transactions (user_id, symbol, stock_name, purchased_price, shares_qty, datetime) VALUES (?, ?, ?, ?, ?, ?)",
-                        sess_id, shares_sold_sym, stock_name, current_price, sold_shares, datetime.now())
+                        (sess_id, shares_sold_sym, stock_name, current_price, sold_shares, datetime.now(), ))
             # Remove the Entire Record from TABLE stocks
-            conn.execute("DELETE FROM stocks WHERE stock_name = ?", stock_name)
+            conn.execute("DELETE FROM stocks WHERE stock_name = ?", (stock_name, ))
 
         else:
             # Record Transaction for Sale
             sold_shares = -(shares_sell_qty)
             conn.execute("INSERT INTO transactions (user_id, symbol, stock_name, purchased_price, shares_qty, datetime) VALUES (?, ?, ?, ?, ?, ?)",
-                        sess_id, shares_sold_sym, stock_name, current_price, sold_shares, datetime.now())
+                        (sess_id, shares_sold_sym, stock_name, current_price, sold_shares, datetime.now(), ))
             # Update the Record
             new_shares_owned = shares_owned - shares_sell_qty
             conn.execute("UPDATE stocks SET shares_qty = ? WHERE user_id = ? AND symbol = ?",
-            new_shares_owned, sess_id, shares_sold_sym)
+            (new_shares_owned, sess_id, shares_sold_sym, ))
 
         # Update Cash
         cash_gain = float(current_price * shares_sell_qty)
         current_cash += cash_gain
-        conn.execute("UPDATE users SET cash = ? WHERE id = ?", current_cash, sess_id)
+        conn.execute("UPDATE users SET cash = ? WHERE id = ?", (current_cash, sess_id, ))
 
         conn.commit()
         conn.close()
@@ -373,7 +373,7 @@ def sell():
         sess_id = session["user_id"]
 
         # Get a List of Dictionaries of Stocks owned
-        stocks_portfolio = conn.execute("SELECT symbol FROM stocks WHERE user_id = ?", sess_id).fetchall()
+        stocks_portfolio = conn.execute("SELECT symbol FROM stocks WHERE user_id = ?", (sess_id, )).fetchall()
         conn.close()
         return render_template("sell.html", stocks_portfolio=stocks_portfolio)
 
@@ -396,11 +396,11 @@ def add_cash():
         sess_id = session["user_id"]
         # Execute SELECT returns a List of Dicts
         conn = get_db_connection()
-        old_balance = (conn.execute("SELECT cash FROM users WHERE id = ?", sess_id).fetchall())[0]["cash"]
+        old_balance = (conn.execute("SELECT cash FROM users WHERE id = ?", (sess_id, )).fetchall())[0]["cash"]
 
         # Update New Cash Amount
         new_balance = old_balance + funds_added
-        conn.execute("UPDATE users SET cash = ? WHERE id = ?", new_balance, sess_id)
+        conn.execute("UPDATE users SET cash = ? WHERE id = ?", (new_balance, sess_id, ))
         
         conn.commit()
         conn.close()
@@ -427,7 +427,7 @@ def pass_change():
         # Wrong Old Password
         # Select returns a List of Dicts
         conn = get_db_connection()
-        hash_pass_dict = conn.execute("SELECT hash FROM users WHERE id = ?", sess_id).fetchall()
+        hash_pass_dict = conn.execute("SELECT hash FROM users WHERE id = ?", (sess_id, )).fetchall()
 
         if not check_password_hash(hash_pass_dict[0]["hash"], old_pass_user):
             conn.close()
@@ -438,7 +438,7 @@ def pass_change():
             return apology("Please ensure your passwords matches!!", 403)
         
         # Changing of Password
-        conn.execute("UPDATE users SET hash = ? WHERE id = ?", generate_password_hash(new_pass), sess_id)
+        conn.execute("UPDATE users SET hash = ? WHERE id = ?", generate_password_hash(new_pass), (sess_id, ))
 
         conn.commit()
         conn.close()

@@ -1,7 +1,0 @@
-cs50
-Flask
-Flask-Session
-redis
-gunicorn
-psycopg2-binary
-requests

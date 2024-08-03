@@ -25,6 +25,7 @@ app.jinja_env.filters['zip'] = zip
 
 # # Configure session to use filesystem (instead of signed cookies)
 # Configuration for SQLite
+app.config['SESSION_TYPE'] = 'sqlalchemy'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///finance.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 

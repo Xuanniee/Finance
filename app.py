@@ -1,6 +1,7 @@
 from crypt import methods
 import os
 import sys
+import sqlite3
 
 from cs50 import SQL
 from flask import Flask, flash, redirect, render_template, request, session
@@ -55,17 +56,23 @@ def after_request(response):
     response.headers["Pragma"] = "no-cache"
     return response
 
+def get_db_connection():
+    """Establish a connection to the SQLite database."""
+    conn = sqlite3.connect('finance.db')
+    conn.row_factory = sqlite3.Row  # Allows dictionary-like row access
+    return conn
 
 @app.route("/")
 @login_required
 def index():
+    conn = get_db_connection()
     """Show portfolio of stocks"""
     # Use SQLite3 to attain different Lists of Dictionaries to pass into Render Template
     sess_id = (session["user_id"])
-    stocks_portfolio = db.engine.execute("SELECT * FROM stocks WHERE user_id = ?", sess_id)
+    stocks_portfolio = conn.execute("SELECT * FROM stocks WHERE user_id = ?", sess_id).fetchall()
 
     # Get User Cash
-    user_cash_listdict = db.engine.execute("SELECT cash FROM users WHERE id = ?", sess_id)
+    user_cash_listdict = conn.execute("SELECT cash FROM users WHERE id = ?", sess_id).fetchall()
     user_cash = user_cash_listdict[0]["cash"]
 
     # Calculate Individual Stock Total
@@ -85,6 +92,9 @@ def index():
 
     total_assets += float(user_cash)
 
+    # Close conn
+    conn.close()
+
     return render_template("index.html", stocks_portfolio=stocks_portfolio, user_cash=user_cash, individual_stock_total=individual_stock_total, total_assets = total_assets)
 
 
@@ -92,6 +102,7 @@ def index():
 @login_required
 def buy():
     """Buy shares of stock"""
+    conn = get_db_connection()
     # Purchasing Shares via POST
     if (request.method == "POST"):
         # Scrape User Input
@@ -120,7 +131,7 @@ def buy():
 
         # Determine Current User's Cash using their Session ID as it returns us a List of Dicts
         sess_id = (session["user_id"])
-        cash_dict = db.engine.execute("SELECT cash FROM users WHERE id = ?", sess_id)
+        cash_dict = conn.execute("SELECT cash FROM users WHERE id = ?", sess_id).fetchall()
         # Same reason as sess_id
         # Cleaning Cash to be used
         user_cash = cash_dict[0]["cash"]
@@ -131,32 +142,34 @@ def buy():
             return apology("You are unable to complete this transaction due to insufficient funds!!")
 
         # Check if the User has bought this particular stock before (SELECT returns a List)
-        first_time_buyer = len(db.engine.execute("SELECT stock_name FROM stocks WHERE user_id = ? AND symbol = ?", sess_id, stock_symbol))
+        first_time_buyer = len(conn.execute("SELECT stock_name FROM stocks WHERE user_id = ? AND symbol = ?", sess_id, stock_symbol)).fetchone()
 
         # Empty List as New Stock
         if (first_time_buyer == 0):
             # Record the Transaction
-            db.engine.execute("INSERT INTO transactions (user_id, symbol, stock_name, purchased_price, shares_qty, datetime) VALUES (?, ?, ?, ?, ?, ?)",
+            conn.execute("INSERT INTO transactions (user_id, symbol, stock_name, purchased_price, shares_qty, datetime) VALUES (?, ?, ?, ?, ?, ?)",
             sess_id, stock_symbol, share_name, stock_currentprice, stock_shares, datetime.now())
             # Record the Account
-            db.engine.execute("INSERT INTO stocks (user_id, symbol, stock_name, current_price, shares_qty) VALUES (?, ?, ?, ?, ?)",
+            conn.execute("INSERT INTO stocks (user_id, symbol, stock_name, current_price, shares_qty) VALUES (?, ?, ?, ?, ?)",
             sess_id, stock_symbol, share_name, stock_currentprice, stock_shares)
 
         # Existing Stock
         else:
             # Record the Transaction
-            db.engine.execute("INSERT INTO transactions (user_id, symbol, stock_name, purchased_price, shares_qty, datetime) VALUES (?, ?, ?, ?, ?, ?)",
+            conn.execute("INSERT INTO transactions (user_id, symbol, stock_name, purchased_price, shares_qty, datetime) VALUES (?, ?, ?, ?, ?, ?)",
                        sess_id, stock_symbol, share_name, stock_currentprice, stock_shares, datetime.now())
             # Update the Account
-            old_qty_dict = db.engine.execute("SELECT shares_qty FROM stocks WHERE user_id = ?", sess_id)
+            old_qty_dict = conn.execute("SELECT shares_qty FROM stocks WHERE user_id = ?", sess_id).fetchall()
             old_qty = old_qty_dict[0]["shares_qty"]
             new_qty = old_qty + stock_shares
-            db.engine.execute("UPDATE stocks SET current_price = ?, shares_qty = ? WHERE user_id = ? AND symbol = ?",
+            conn.execute("UPDATE stocks SET current_price = ?, shares_qty = ? WHERE user_id = ? AND symbol = ?",
                        stock_currentprice, new_qty, sess_id, stock_symbol)
 
         # Update User's Cash
         user_cash = user_cash - transaction_cost
-        db.engine.execute("UPDATE users SET cash = ? WHERE id = ?", user_cash, sess_id)
+        conn.execute("UPDATE users SET cash = ? WHERE id = ?", user_cash, sess_id)
+        conn.commit()
+        conn.close()
         return redirect("/")
 
     # GET Request to reach Form
@@ -168,22 +181,23 @@ def buy():
 @login_required
 def history():
     """Show history of transactions"""
+    conn = get_db_connection()
     # GET Request
     if (request.method == "GET"):
         sess_id = session["user_id"]
-        stocks_portfolio = db.engine.execute("SELECT * FROM transactions WHERE user_id = ?", sess_id)
+        stocks_portfolio = conn.execute("SELECT * FROM transactions WHERE user_id = ?", sess_id).fetchall()
         return render_template("history.html", stocks_portfolio=stocks_portfolio)
 
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     """Log user in"""
-
     # Forget any user_id
     session.clear()
 
     # User reached route via POST (as by submitting a form via POST)
     if request.method == "POST":
+        conn = get_db_connection()
 
         # Ensure username was submitted
         if not request.form.get("username"):
@@ -194,7 +208,7 @@ def login():
             return apology("must provide password", 403)
 
         # Query database for username
-        rows = db.engine.execute("SELECT * FROM users WHERE username = ?", request.form.get("username"))
+        rows = conn.execute("SELECT * FROM users WHERE username = ?", request.form.get("username")).fetchall()
 
         # Ensure username exists and password is correct
         if len(rows) != 1 or not check_password_hash(rows[0]["hash"], request.form.get("password")):
@@ -203,6 +217,7 @@ def login():
         # Remember which user has logged in
         session["user_id"] = rows[0]["id"]
 
+        conn.close()
         # Redirect user to home page
         return redirect("/")
 
@@ -254,6 +269,7 @@ def register():
     """Register user"""
     # Register User and Insert into Database
     if request.method == "POST":
+        conn = get_db_connection()
         # Store User Input
         new_username = request.form.get("username")  # Argument is Name of Input Tag
         new_password = request.form.get("password")
@@ -266,15 +282,20 @@ def register():
         elif (new_password != confirmation):
             return apology("Please check that you have entered your password correctly!!")
         # Check if Username has been taken
-        elif (db.engine.execute("SELECT * FROM users WHERE username = ?", new_username)):
+        elif (conn.execute("SELECT * FROM users WHERE username = ?", new_username).fetchall()):
+            conn.close()
             return apology("Username is in use. Please pick another!!", 400)
 
         # If no errors, add the User into our Database
         hashed_pw = generate_password_hash(new_password)
-        db.engine.execute("INSERT INTO users (username, hash) VALUES(?,?)", new_username, hashed_pw)
+        conn.execute("INSERT INTO users (username, hash) VALUES(?,?)", new_username, hashed_pw)
 
         # Log User in
-        session["user_id"] = (db.engine.execute("SELECT id FROM users WHERE username = ?", new_username))[0]['id']
+        session["user_id"] = (conn.execute("SELECT id FROM users WHERE username = ?", new_username).fetchall())[0]['id']
+        
+        # Commit all the insert and update queries and close connection
+        conn.commit()
+        conn.close()
         return redirect("/")
 
     # GET Request to go to Registration Form
@@ -288,22 +309,27 @@ def sell():
     """Sell shares of stock"""
     # Submitting Sell Request
     if request.method == "POST":
+        conn = get_db_connection()
+
         # Getting User Input
         shares_sell_qty = int(request.form.get("shares"))
         shares_sold_sym = request.form.get("symbol")
 
         # Input Validation
         sess_id = session["user_id"]
-        shares_owned_dict = db.engine.execute("SELECT shares_qty FROM stocks WHERE user_id = ?", sess_id)
+        shares_owned_dict = conn.execute("SELECT shares_qty FROM stocks WHERE user_id = ?", sess_id).fetchall()
         shares_owned = shares_owned_dict[0]["shares_qty"]
         if (shares_sell_qty <= 0):
             # Non-Positive Number of Shares to be sold
+            conn.close()
             return apology("Please provide a positive number of shares to be sold!!!")
         elif (shares_sold_sym == None):
             # User does not own that stock or failed to select
+            conn.close()
             return apology("Shares to be sold was not selected!!!")
         elif (shares_sell_qty > shares_owned):
             # User does not have that many shares to sell
+            conn.close()
             return apology("Shares to be sold exceed the shares you own!!!")
 
         # Sell the Shares
@@ -311,40 +337,44 @@ def sell():
         current_price = stock_quote["price"]
         stock_name = stock_quote["name"]
         # Cash is in USD format, a string. Thus it needs to be stripped and replaced to be cast as a float
-        current_cash = (db.engine.execute("SELECT cash FROM users WHERE id = ?", sess_id)[0]["cash"])
+        current_cash = (conn.execute("SELECT cash FROM users WHERE id = ?", sess_id).fetchall()[0]["cash"])
 
         if (shares_sell_qty == shares_owned):
             # Record Transaction for Sale
             sold_shares = -(shares_sell_qty)
-            db.engine.execute("INSERT INTO transactions (user_id, symbol, stock_name, purchased_price, shares_qty, datetime) VALUES (?, ?, ?, ?, ?, ?)",
+            conn.execute("INSERT INTO transactions (user_id, symbol, stock_name, purchased_price, shares_qty, datetime) VALUES (?, ?, ?, ?, ?, ?)",
                         sess_id, shares_sold_sym, stock_name, current_price, sold_shares, datetime.now())
             # Remove the Entire Record from TABLE stocks
-            db.engine.execute("DELETE FROM stocks WHERE stock_name = ?", stock_name)
+            conn.execute("DELETE FROM stocks WHERE stock_name = ?", stock_name)
 
         else:
             # Record Transaction for Sale
             sold_shares = -(shares_sell_qty)
-            db.engine.execute("INSERT INTO transactions (user_id, symbol, stock_name, purchased_price, shares_qty, datetime) VALUES (?, ?, ?, ?, ?, ?)",
+            conn.execute("INSERT INTO transactions (user_id, symbol, stock_name, purchased_price, shares_qty, datetime) VALUES (?, ?, ?, ?, ?, ?)",
                         sess_id, shares_sold_sym, stock_name, current_price, sold_shares, datetime.now())
             # Update the Record
             new_shares_owned = shares_owned - shares_sell_qty
-            db.engine.execute("UPDATE stocks SET shares_qty = ? WHERE user_id = ? AND symbol = ?",
+            conn.execute("UPDATE stocks SET shares_qty = ? WHERE user_id = ? AND symbol = ?",
             new_shares_owned, sess_id, shares_sold_sym)
 
         # Update Cash
         cash_gain = float(current_price * shares_sell_qty)
         current_cash += cash_gain
-        db.engine.execute("UPDATE users SET cash = ? WHERE id = ?", current_cash, sess_id)
+        conn.execute("UPDATE users SET cash = ? WHERE id = ?", current_cash, sess_id)
 
+        conn.commit()
+        conn.close()
         return redirect("/")
 
     # GET Request to get to Sell Page
     else:
+        conn = get_db_connection()
         # Cookies
         sess_id = session["user_id"]
 
         # Get a List of Dictionaries of Stocks owned
-        stocks_portfolio = db.engine.execute("SELECT symbol FROM stocks WHERE user_id = ?", sess_id)
+        stocks_portfolio = conn.execute("SELECT symbol FROM stocks WHERE user_id = ?", sess_id).fetchall()
+        conn.close()
         return render_template("sell.html", stocks_portfolio=stocks_portfolio)
 
 @app.route("/add", methods=["GET","POST"])
@@ -365,11 +395,15 @@ def add_cash():
         # Determine Current Cash Flows
         sess_id = session["user_id"]
         # Execute SELECT returns a List of Dicts
-        old_balance = (db.engine.execute("SELECT cash FROM users WHERE id = ?", sess_id))[0]["cash"]
+        conn = get_db_connection()
+        old_balance = (conn.execute("SELECT cash FROM users WHERE id = ?", sess_id).fetchall())[0]["cash"]
 
         # Update New Cash Amount
         new_balance = old_balance + funds_added
-        db.engine.execute("UPDATE users SET cash = ? WHERE id = ?", new_balance, sess_id)
+        conn.execute("UPDATE users SET cash = ? WHERE id = ?", new_balance, sess_id)
+        
+        conn.commit()
+        conn.close()
         return redirect("/")
 
     # GET Request to reach form to add cash
@@ -392,16 +426,22 @@ def pass_change():
             return apology("Please submit all the Password Fields or we cannot change the Password for you!!", 403)
         # Wrong Old Password
         # Select returns a List of Dicts
-        hash_pass_dict = db.engine.execute("SELECT hash FROM users WHERE id = ?", sess_id)
+        conn = get_db_connection()
+        hash_pass_dict = conn.execute("SELECT hash FROM users WHERE id = ?", sess_id).fetchall()
 
         if not check_password_hash(hash_pass_dict[0]["hash"], old_pass_user):
+            conn.close()
             return apology("You have provided the wrong current password!!", 403)
         # Passwords do not match
         if new_pass != confirmation:
+            conn.close()
             return apology("Please ensure your passwords matches!!", 403)
         
         # Changing of Password
-        db.engine.execute("UPDATE users SET hash = ? WHERE id = ?", generate_password_hash(new_pass), sess_id)
+        conn.execute("UPDATE users SET hash = ? WHERE id = ?", generate_password_hash(new_pass), sess_id)
+
+        conn.commit()
+        conn.close()
         return redirect("/")
 
     # GET Request

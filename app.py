@@ -142,10 +142,13 @@ def buy():
             return apology("You are unable to complete this transaction due to insufficient funds!!")
 
         # Check if the User has bought this particular stock before (SELECT returns a List)
-        first_time_buyer = len(conn.execute("SELECT stock_name FROM stocks WHERE user_id = ? AND symbol = ?", (sess_id, stock_symbol, ))).fetchone()
+        first_time_buyer = conn.execute(
+            "SELECT stock_name FROM stocks WHERE user_id = ? AND symbol = ?", 
+            (sess_id, stock_symbol)
+        ).fetchone()
 
         # Empty List as New Stock
-        if (first_time_buyer == 0):
+        if (first_time_buyer is None):
             # Record the Transaction
             conn.execute("INSERT INTO transactions (user_id, symbol, stock_name, purchased_price, shares_qty, datetime) VALUES (?, ?, ?, ?, ?, ?)",
             (sess_id, stock_symbol, share_name, stock_currentprice, stock_shares, datetime.now(), ))

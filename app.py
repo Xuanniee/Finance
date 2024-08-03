@@ -24,7 +24,6 @@ app.jinja_env.filters["usd"] = usd
 app.jinja_env.filters['zip'] = zip
 
 # # Configure session to use filesystem (instead of signed cookies)
-# Configuration for SQLite
 app.config['SESSION_TYPE'] = 'sqlalchemy'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///finance.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -32,6 +31,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Initialize the database
 db = SQLAlchemy(app)
 
+# Set up session with SQLAlchemy
+app.config['SESSION_SQLALCHEMY'] = db
 Session(app)
 
 # Configure Heroku to use Postgres database

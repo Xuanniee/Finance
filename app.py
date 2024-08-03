@@ -119,7 +119,7 @@ def buy():
         if (not stock_symbol):
             return apology("Symbol Field is empty!! Please provide a Symbol!!")
         # Non-Existent Symbol
-        if (stock_dict is None):
+        if (stock_dict == None):
             return apology("Stock Symbol does not exist!!")
         # Non-Positive Integer
         if (stock_shares <= 0):
@@ -127,7 +127,7 @@ def buy():
 
         # Purchasing Stocks
         stock_currentprice = stock_dict["price"]
-        share_name = stock_dict["symbol"]
+        share_name = stock_dict["name"]
 
         # Determine Current User's Cash using their Session ID as it returns us a List of Dicts
         sess_id = (session["user_id"])
@@ -252,10 +252,10 @@ def quote():
         # Use Lookup Function to get back a Dictionary
         stock_quote_dict = lookup(stock_symbol)
         # Error Checking
-        if (stock_quote_dict is None):
+        if (stock_quote_dict == None):
             return apology("Sorry! The Stock Symbol provided does not exist!!!")
         # Determine name, price, symbol
-        stock_name = stock_quote_dict["symbol"]
+        stock_name = stock_quote_dict["name"]
         stock_price = round(stock_quote_dict["price"], 2)  # Format as USD
 
         # Render the Quoted Template and Pass in the Necessary Values, formatted as USD within HTML file itself
@@ -338,7 +338,7 @@ def sell():
         # Sell the Shares
         stock_quote = lookup(shares_sold_sym)
         current_price = stock_quote["price"]
-        stock_name = stock_quote["symbol"]
+        stock_name = stock_quote["name"]
         # Cash is in USD format, a string. Thus it needs to be stripped and replaced to be cast as a float
         current_cash = (conn.execute("SELECT cash FROM users WHERE id = ?", (sess_id, )).fetchall()[0]["cash"])
 
